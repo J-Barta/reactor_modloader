@@ -1,0 +1,42 @@
+name: mosim_modloader
+description: "The Reactor Modloader for the game MoSim
+, made in Flutter."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.4.3 <4.0.0'
+
+#dart run msix:create
+msix_config:
+  display_name: Reactor Modloader
+  publisher_display_name: Jedi_4  
+  identity_name: CCShambots.ReactorModloader
+  store: true
+  publisher: CN=A3792B11-8FEE-477E-B2FF-B9039EB1B82B
+  capabilities: internetClient, location, microphone, webcam
+  logo_path: C:\Users\barta\Documents\GitHub\mosim_modloader\assets\icon\icon.png
+
+dependencies:
+  archive: ^3.6.1
+  dio: ^5.6.0
+  file_picker: ^8.1.2
+  flutter:
+    sdk: flutter
+
+  intl: ^0.19.0
+  open_filex: ^4.5.0
+  package_info_plus: ^8.0.0
+  path_provider: ^2.1.4
+  shared_preferences: ^2.3.2
+  toastification: ^2.1.0
+  
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  msix: ^3.16.7
+
+flutter:
+  uses-material-design: true
