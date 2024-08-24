@@ -4,6 +4,7 @@ import 'package:mosim_modloader/account.dart';
 import 'package:mosim_modloader/home.dart';
 import 'package:mosim_modloader/mod-displays/mod_list_page.dart';
 import 'package:mosim_modloader/util/api_session.dart';
+import 'package:mosim_modloader/util/download_util.dart';
 import 'package:mosim_modloader/util/mod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -12,6 +13,7 @@ void main() async {
 
   APISession.updateKeys();
 
+  DownloadUtil.ensureModloaderDirectoryExists();
 
   runApp(const MainApp());
 }

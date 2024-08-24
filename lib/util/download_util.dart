@@ -72,6 +72,10 @@ class DownloadUtil {
     return "${await getModloaderPath()}/$name.zip";
   }
 
+  static Future<void> ensureModloaderDirectoryExists() async {
+    Directory(await getModloaderPath()).createSync(recursive: true);
+  }
+
   static Future<String> getModloaderPath() async {
     return await getApplicationDocumentsDirectory()
         .then((value) => ("${value.path}/reactor_modloader"));
