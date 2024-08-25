@@ -72,7 +72,8 @@ class StyleConstants {
   static BoxDecoration warningShadedDecoration(BuildContext context) {
     return BoxDecoration(
         borderRadius: BorderRadius.circular(12.0),
-        color: Colors.yellow.withOpacity(0.3));
+        border: Border.all(color: Colors.yellow),
+        color: Colors.yellow.withOpacity(0.2));
   }
 
   static EdgeInsets margin = const EdgeInsets.all(8);

@@ -46,6 +46,10 @@ class User {
     );
   }
 
+  bool isAdmin() {
+    return roles.contains("admin");
+  }
+
   static Future<User?> getUserFromPrefs() async {
     String? token = await SharedPreferences.getInstance()
         .then((prefs) => prefs.getString(APIConstants().userToken));

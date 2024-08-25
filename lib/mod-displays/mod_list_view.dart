@@ -1,13 +1,21 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:mosim_modloader/mod_editor.dart';
 import 'package:mosim_modloader/util/constants.dart';
 import 'package:mosim_modloader/util/mod.dart';
+import 'package:mosim_modloader/util/user.dart';
 
 class ModListView extends StatefulWidget {
   final Mod mod;
   final bool installed;
-  const ModListView({super.key, required this.mod, required this.installed});
+  final Function onInstallsChanged;
+  final Function? reloadModList;
+
+  final bool canEdit;
+  final User? user;
+  
+  const ModListView({super.key, required this.mod, required this.installed, required this.onInstallsChanged, this.canEdit = false, this.user, this.reloadModList});
 
   @override
   State<ModListView> createState() => _ModListViewState();
@@ -50,12 +58,20 @@ class _ModListViewState extends State<ModListView> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: StyleConstants.shadedDecoration(context),
+      decoration: widget.mod.verified ? StyleConstants.shadedDecoration(context) : StyleConstants.warningShadedDecoration(context),
       margin: StyleConstants.margin,
       padding: StyleConstants.padding,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          widget.canEdit ?
+          IconButton(
+            tooltip: "Edit Mod",
+            icon: const Icon(Icons.edit, size: 48, color: Colors.blue,),
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => ModEditorPage(user: widget.user, mod: widget.mod)));
+            },
+          ) : Container(),
           hasThumbnail
               ? Flexible(
                   flex: 1,
@@ -74,20 +90,67 @@ class _ModListViewState extends State<ModListView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.mod.name,
-                    style: StyleConstants.titleStyle,
+                  Row(
+                    children: [
+                      Text(
+                        widget.mod.name,
+                        style: StyleConstants.titleStyle,
+                      ),
+                      widget.mod.verified
+                          ? Container()
+                          : const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Tooltip(
+                                message: "Unverified",
+                                child: Icon(
+                                  Icons.warning_rounded,
+                                  color: Colors.yellow,
+                                  size: 48,
+                                ),
+                              ),
+                          ),
+
+                      widget.user != null && widget.user!.isAdmin() ? IconButton(
+                        tooltip: "Verify Mod",
+                        icon: const Icon(Icons.check_circle, color: Colors.green, size: 48,),
+                        onPressed: () async {
+                          await widget.mod.verifyMod(context);
+
+                          if(widget.reloadModList != null) {
+                            widget.reloadModList!();
+                          }
+                        },
+                      ) : Container(), 
+                    ],
                   ),
-                  Text(
-                    widget.mod.description,
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: true,
-                    maxLines: 5,
+                  Tooltip(
+                    message: widget.mod.description,
+                    triggerMode: TooltipTriggerMode.tap,
+                    waitDuration: const Duration(milliseconds: 500),
+                    child: Text(
+                      widget.mod.description,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: true,
+                      maxLines: 5,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
+          Flexible(
+            flex: 1,
+            child: Column(
+              children: [
+                Text("Robots", style: StyleConstants.subtitleStyle),
+                Column(
+                  children: widget.mod.robots
+                      .map((e) => Text(e))
+                      .toList(),
+                )
+              ],
+            ) 
+          ,),
           Flexible(
             flex: 1,
             child: Column(
@@ -122,6 +185,8 @@ class _ModListViewState extends State<ModListView> {
                                       if (!mounted) return;
                                       setState(() {
                                         unzipping = false;
+
+                                        widget.onInstallsChanged();
                                       });
                                     }, () {
                                       if (!mounted) return;
@@ -143,8 +208,10 @@ class _ModListViewState extends State<ModListView> {
                                 widget.mod.launchMod();
                               }, icon: const Icon(Icons.play_arrow, color: Colors.blue,)),
                               const Tooltip( message: "Installed", child: Icon(Icons.check, color: Colors.green)),
-                              IconButton(tooltip: "Remove Mod", onPressed: () {
+                              IconButton(tooltip: "Uninstall", onPressed: () async {
+                                await widget.mod.deleteMod(context);
 
+                                widget.onInstallsChanged();
                               }, icon: const Icon(Icons.delete, color: Colors.red)),
                               Container(width: 10,),
                               const Icon(Icons.download),

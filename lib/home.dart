@@ -4,8 +4,9 @@ import 'package:mosim_modloader/util/mod.dart';
 
 class Home extends StatefulWidget {
   final List<Mod> installedMods;
+  final Function onInstallsChanged;
 
-  const Home({super.key, required this.installedMods});
+  const Home({super.key, required this.installedMods, required this.onInstallsChanged});
 
   @override
   State<Home> createState() => _HomeState();
@@ -19,7 +20,7 @@ class _HomeState extends State<Home> {
         children: [
           Expanded(
             child: ListView(
-              children: widget.installedMods.map((e) => ModListView(mod: e, installed: true)).toList(),
+              children: widget.installedMods.map((e) => ModListView(mod: e, installed: true, onInstallsChanged: widget.onInstallsChanged,)).toList(),
             ),
           )
         ],

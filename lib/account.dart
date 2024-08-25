@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:mosim_modloader/account-widgets/sign_in.dart';
-import 'package:mosim_modloader/create_mod.dart';
+import 'package:mosim_modloader/mod_editor.dart';
+import 'package:mosim_modloader/mod-displays/mod_list_view.dart';
 import 'package:mosim_modloader/util/constants.dart';
 import 'package:mosim_modloader/util/api_session.dart';
+import 'package:mosim_modloader/util/mod.dart';
 import 'package:mosim_modloader/util/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Account extends StatefulWidget {
-  const Account({super.key});
+  final List<Mod> allMods;
+  final List<Mod> installedMods;
+  final Function onInstallsChanged;
+  const Account({super.key, required this.allMods, required this.installedMods, required this.onInstallsChanged});
 
   @override
   State<Account> createState() => _AccountState();
@@ -68,6 +73,8 @@ class _AccountState extends State<Account> {
 
   @override
   Widget build(BuildContext context) {
+    List<Mod> userMods = widget.allMods.where((element) => element.author.id == user?.id).toList();
+
     return user != null && user?.email != ""
         ? Scaffold(
             body: SingleChildScrollView(
@@ -128,21 +135,44 @@ class _AccountState extends State<Account> {
                   user!.email,
                   style: StyleConstants.h3Style,
                 ),
-                 ElevatedButton(
-                    onPressed: () async {
-                      await logOut();
-                    },
-                    child: Text(
-                      "Logout",
-                      style: StyleConstants.subtitleStyle,
-                    ),
+                ElevatedButton(
+                  onPressed: () async {
+                    await logOut();
+                  },
+                  child: Text(
+                    "Logout",
+                    style: StyleConstants.subtitleStyle,
                   ),
-                ElevatedButton(onPressed: () async {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (context) => CreateModPage(user: user)));
-                }, child: Text(
-                  "Create Mod",
-                  style: StyleConstants.subtitleStyle,
-                ))
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Your Mods (${userMods.length})",
+                        style: StyleConstants.subtitleStyle,
+                      ),
+                      ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+                            foregroundColor: Colors.white
+                          ),
+                          onPressed: () async {
+                            Navigator.of(context).push(MaterialPageRoute(
+                                builder: (context) => ModEditorPage(user: user)));
+                          },
+                          icon: Icon(Icons.add),
+                          label: Text(
+                            "Create Mod",
+                            style: StyleConstants.subtitleStyle,
+                          )),
+                    ],
+                  ),
+                ),
+                Column(
+                  children: userMods.map((e) => ModListView(mod: e, installed: widget.installedMods.contains(e), onInstallsChanged: widget.onInstallsChanged, canEdit: true,)).toList(),
+                )
               ],
             ),
           ))

@@ -90,7 +90,7 @@ class Mod {
     return jsonVal['available'];
   }
 
-  static Future<void> postMod(
+  static Future<Mod?> postMod(
     String name,
     String downloadURL,
     String description,
@@ -123,9 +123,12 @@ class Mod {
 
     if (result.statusCode != 200) {
       APIConstants.showErrorToast("Failed to post mod: ${result.body}", context);
+
+      return null;
     } else {
       APIConstants.showSuccessToast("Posted mod: $name. It will be reviewed and verified or returned to you for edits", context);
-      Navigator.of(context).pop();
+
+      return Mod.fromJson(jsonDecode(result.body));
     }
 
   }
@@ -152,32 +155,10 @@ class Mod {
 
       var response = await APISession.postWithParams("/mod/addDownload", {"id": id.toString()});
 
-      bool unzipSuccess = await DownloadUtil.unzipFile(name, true, context);
+      bool unzipSuccess = await DownloadUtil.unzipFile(name, context);
 
       if(unzipSuccess) {
-        String pathForMetadataFile = "${await DownloadUtil.getModloaderPath()}/$name/metadata.json";
-
-        File file = File(pathForMetadataFile);
-
-        file.createSync();
-
-        file.writeAsStringSync(const JsonEncoder.withIndent('  ').convert({
-          "id": id,
-          "name": name,
-          "description": description,
-          "robots": robots,
-          "verified": verified,
-          "version": version,
-          "baseSimVersion": baseSimVersion,
-          "link": link,
-          "sourceCode": sourceCode,
-          "windowsPath": windowsPath,
-          "linuxPath": linuxPath,
-          "macPath": macPath,
-          "author": author.id,
-          "uploadDate": uploadDate.toIso8601String(),
-          "lastUpdated": lastUpdated.toIso8601String(),
-        }));
+        generateMetadataFile();
 
         onFinishUnzip();
       } else {
@@ -186,6 +167,33 @@ class Mod {
     } else {
     }
 
+  }
+
+  Future<void> generateMetadataFile() async {
+      
+      String pathForMetadataFile = "${await DownloadUtil.getModloaderPath()}/$name/metadata.json";
+  
+      File file = File(pathForMetadataFile);
+  
+      file.createSync();
+  
+      file.writeAsStringSync(const JsonEncoder.withIndent('  ').convert({
+        "id": id,
+        "name": name,
+        "description": description,
+        "robots": robots,
+        "verified": verified,
+        "version": version,
+        "baseSimVersion": baseSimVersion,
+        "link": link,
+        "sourceCode": sourceCode,
+        "windowsPath": windowsPath,
+        "linuxPath": linuxPath,
+        "macPath": macPath,
+        "author": author.id,
+        "uploadDate": uploadDate.toIso8601String(),
+        "lastUpdated": lastUpdated.toIso8601String(),
+      }));
   }
 
   static Future<List<Mod>> loadInstalledMods(List<Mod> allMods) async {
@@ -210,11 +218,40 @@ class Mod {
 
   }
 
+  Future<void> deleteMod(BuildContext context) async {
+
+    try {
+      Directory modDir = Directory("${await DownloadUtil.getModloaderPath()}/$name");
+
+      modDir.deleteSync(recursive: true);
+    
+      File modZipFile = File("${await DownloadUtil.getModloaderPath()}/$name.zip");
+
+      modZipFile.deleteSync();
+
+      APIConstants.showSuccessToast("Uninstalled mod: $name", context);
+
+    } catch(e) {
+      APIConstants.showErrorToast("Failed to uninstall mod: $name", context);
+    }
+
+  }
+
+  Future<void> verifyMod(BuildContext context) async {
+    APISession.postWithParams("/mod/verify", {"id": id.toString()}).then((response) {
+      if(response.statusCode == 200) {
+        APIConstants.showSuccessToast("Verified mod: $name", context);
+      } else {
+        APIConstants.showErrorToast("Failed to verify mod: $name", context);
+      }
+    });
+  }
+
   void launchMod() async {
     String executablePath = "${await DownloadUtil.getModloaderPath()}/${Platform.isWindows ? windowsPath : Platform.isLinux ? linuxPath : macPath}".replaceAll("/", "\\");
 
     Process.run(executablePath, [' start ']).then((ProcessResult results) {
-      print(results.stdout);
+      stdout.writeln(results.stdout);
     });
 
   }

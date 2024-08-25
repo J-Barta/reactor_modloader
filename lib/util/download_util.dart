@@ -41,7 +41,7 @@ class DownloadUtil {
     }
   }
 
-  static Future<bool> unzipFile(String modName, bool deleteOriginal, BuildContext context) async {
+  static Future<bool> unzipFile(String modName, BuildContext context) async {
 
     try {
 
@@ -56,9 +56,6 @@ class DownloadUtil {
 
       APIConstants.showSuccessToast("File Unzipped!", context);
 
-      if(deleteOriginal) {
-        // File(zipPath).deleteSync();
-      }
 
       return true;
     } catch (e) {
@@ -72,12 +69,20 @@ class DownloadUtil {
     return "${await getModloaderPath()}/$name.zip";
   }
 
+  static Future<String> getModDirectory(String name) async {
+    return "${await getModloaderPath()}/$name";
+  }
+
   static Future<void> ensureModloaderDirectoryExists() async {
     Directory(await getModloaderPath()).createSync(recursive: true);
   }
 
   static Future<String> getModloaderPath() async {
     return await getApplicationDocumentsDirectory()
-        .then((value) => ("${value.path}/reactor_modloader"));
+        .then((value) => ("${value.path}/${getBaseDirectoryName()}"));
+  }
+
+  static String getBaseDirectoryName() {
+    return "reactor_modloader";
   }
 }

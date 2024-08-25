@@ -6,6 +6,7 @@ import 'package:mosim_modloader/mod-displays/mod_list_page.dart';
 import 'package:mosim_modloader/util/api_session.dart';
 import 'package:mosim_modloader/util/download_util.dart';
 import 'package:mosim_modloader/util/mod.dart';
+import 'package:mosim_modloader/util/user.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 void main() async {
@@ -80,6 +81,8 @@ class _BottomNavigationState extends State<BottomNavigation> {
   List<Mod> allMods = [];
   List<Mod> installedMods = [];
 
+  User? user;
+
   @override
   void initState() {
     super.initState();
@@ -89,8 +92,22 @@ class _BottomNavigationState extends State<BottomNavigation> {
 
     reloadInstalledMods();
 
+    loadUser();
+
     regenWidgetOptions();
 
+  }
+
+  Future<void> loadUser() async {
+    User? newUser = await User.getUserFromPrefs();
+
+    if (newUser != null) {
+      setState(() {
+        user = newUser;
+      });
+    }
+
+    regenWidgetOptions();
   }
 
   void loadMods() async {
@@ -133,9 +150,9 @@ class _BottomNavigationState extends State<BottomNavigation> {
 
   void regenWidgetOptions() {
     widgetOptions = [
-      Home(installedMods: installedMods),
-      ModListPage(allMods: allMods, installedMods: installedMods),
-      Account()
+      Home(installedMods: installedMods, onInstallsChanged: reloadInstalledMods,),
+      ModListPage(allMods: allMods, installedMods: installedMods, onInstallsChanged: reloadInstalledMods, user: user, reloadModList: loadMods,),
+      Account(allMods: allMods, installedMods: installedMods, onInstallsChanged: reloadInstalledMods)
     ];
   }
 
@@ -145,6 +162,14 @@ class _BottomNavigationState extends State<BottomNavigation> {
       appBar: AppBar(
         title: const Text('Reactor'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              loadMods();
+            },
+          )
+        ],
       ),
       body: PageView(
         controller: pageViewController,
