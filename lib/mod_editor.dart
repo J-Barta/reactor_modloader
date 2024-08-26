@@ -23,6 +23,8 @@ class _ModEditorPageState extends State<ModEditorPage> {
   TextEditingController nameController = TextEditingController();
   TextEditingController downloadURLController = TextEditingController();
 
+  bool madeCoreChanges = false;
+
   TextEditingController descriptionController = TextEditingController();
   TextEditingController versionController = TextEditingController();
   TextEditingController baseSimVersionController = TextEditingController();
@@ -49,6 +51,7 @@ class _ModEditorPageState extends State<ModEditorPage> {
   String macPath = "";
 
   bool nameTaken = false;
+  bool requestingNameCheck = false;
 
   bool _showDeleteIcon = false;
 
@@ -107,15 +110,14 @@ class _ModEditorPageState extends State<ModEditorPage> {
         this.unzipSuccess = unzipSuccess;
       });
 
-      if(unzipSuccess) {
-
-        String folderPath = await DownloadUtil.getModDirectory(nameController.text);
+      if (unzipSuccess) {
+        String folderPath =
+            await DownloadUtil.getModDirectory(nameController.text);
         setState(() {
           baseFolderPath = folderPath;
           foldersDisplayed.add(baseFolderPath);
         });
       }
-
     } else {
       setState(() {
         downloading = false;
@@ -162,7 +164,7 @@ class _ModEditorPageState extends State<ModEditorPage> {
     //TODO: Check if the mod's name has already been used
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create New Mod'),
+        title: Text(widget.mod == null ? 'Create New Mod' : "Edit Mod"),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: SingleChildScrollView(
@@ -178,9 +180,43 @@ class _ModEditorPageState extends State<ModEditorPage> {
                               "These can't be changed once you've downloaded the mod files",
                           child: Icon(Icons.lock))
                       : Container(),
+                  SizedBox(
+                    width: 50,
+                    child: nameTaken
+                        ? const Tooltip(
+                            message: "Name taken!",
+                            child: Icon(Icons.error_rounded, color: Colors.red))
+                        : requestingNameCheck
+                            ? const Tooltip(
+                                message: "Checking Name Availability",
+                                child: Padding(
+                                  padding: EdgeInsets.all(8.0),
+                                  child: CircularProgressIndicator(),
+                                ))
+                            : const Tooltip(
+                                message: "Name Available!",
+                                child: Icon(Icons.check_circle,
+                                    color: Colors.green)),
+                  ),
                   Expanded(
                     child: TextField(
                       controller: nameController,
+                      onChanged: (value) async {
+                        setState(() {
+                          requestingNameCheck = true;
+                        });
+
+                        NameResult result = await Mod.nameAvailable(value);
+                        
+                        if(result.name == nameController.text) {
+                          setState(() {
+                            nameTaken = !result.available && result.name != widget.mod?.name;
+                            requestingNameCheck = false;
+                          });
+                        }
+
+                        indicateCoreChanges(value);
+                      },
                       readOnly: downloading || downloadComplete,
                       decoration: InputDecoration(
                         labelText: 'Mod Name',
@@ -206,8 +242,10 @@ class _ModEditorPageState extends State<ModEditorPage> {
                     child: TextField(
                       controller: downloadURLController,
                       readOnly: downloading || downloadComplete,
+                      onChanged: indicateCoreChanges,
                       decoration: const InputDecoration(
-                          labelText: 'Download URL', border: OutlineInputBorder()),
+                          labelText: 'Download URL',
+                          border: OutlineInputBorder()),
                     ),
                   ),
                 ],
@@ -227,23 +265,28 @@ class _ModEditorPageState extends State<ModEditorPage> {
                           },
                           child: const Text('Download Mod Files'),
                         ),
-                        editing ? ElevatedButton(
-                          onPressed: () async {
-                              
-                            String folderPath = await DownloadUtil.getModDirectory(nameController.text);
+                        editing && !madeCoreChanges
+                            ? ElevatedButton(
+                                onPressed: () async {
+                                  String folderPath =
+                                      await DownloadUtil.getModDirectory(
+                                          nameController.text);
 
-                            setState(() {
-                              downloadComplete = true;
-                              unzipping = true;
+                                  setState(() {
+                                    downloadComplete = true;
+                                    unzipping = false;
+                                    unzipSuccess = true;
 
-                              setState(() {
-                                baseFolderPath = folderPath;
-                                foldersDisplayed.add(baseFolderPath);
-                              });
-                            });
-                          },
-                          child: const Text('Mod Files are the same as already installed'),
-                        ) : Container(),
+                                    setState(() {
+                                      baseFolderPath = folderPath;
+                                      foldersDisplayed.add(baseFolderPath);
+                                    });
+                                  });
+                                },
+                                child: const Text(
+                                    'Mod Files are the same as already installed'),
+                              )
+                            : Container(),
                       ],
                     ))
                 : Container(),
@@ -513,8 +556,23 @@ class _ModEditorPageState extends State<ModEditorPage> {
     );
   }
 
+  void indicateCoreChanges(value) {
+    setState(() {
+      madeCoreChanges = true;
+      windowsPath = "";
+      macPath = "";
+      foldersDisplayed = [];
+      baseFolderPath = "";
+      downloadComplete = false;
+      unzipping = false;
+      unzipSuccess = false;
+    });
+  }
+
   Future<void> postMod(BuildContext context) async {
     APISession.updateKeys();
+
+    print(widget.user);
 
     if (widget.user != null &&
         hasThumbnail &&
@@ -523,6 +581,7 @@ class _ModEditorPageState extends State<ModEditorPage> {
         descriptionController.text.isNotEmpty &&
         versionController.text.isNotEmpty &&
         baseSimVersionController.text.isNotEmpty &&
+        !nameTaken &&
         (windowsPath.isNotEmpty || macPath.isNotEmpty)) {
       Mod? result = await Mod.postMod(
           nameController.text,
@@ -532,12 +591,16 @@ class _ModEditorPageState extends State<ModEditorPage> {
           baseSimVersionController.text,
           sourceCodeController.text,
           robots,
-          base64Encode(thumbnailFile!.readAsBytesSync()),
+          thumbnailFile != null
+              ? base64Encode(thumbnailFile!.readAsBytesSync())
+              : widget.mod?.thumbnail ?? "",
           windowsPath,
           macPath,
           "",
           widget.user!,
-          context);
+          context,
+          editing,
+          widget.mod);
 
       if (result != null) {
         result.generateMetadataFile();
@@ -650,7 +713,6 @@ class _FolderListDisplayState extends State<FolderListDisplay> {
 
   @override
   Widget build(BuildContext context) {
-
     return Flexible(
       child: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -674,7 +736,10 @@ class _FolderListDisplayState extends State<FolderListDisplay> {
                               icon: Icon(
                                 Icons.window,
                                 color: widget.windowsPath ==
-                                        e.path.split("${DownloadUtil.getBaseDirectoryName()}/").last
+                                        e.path
+                                            .split(
+                                                "${DownloadUtil.getBaseDirectoryName()}/")
+                                            .last
                                     ? Colors.green
                                     : null,
                               ),
@@ -685,7 +750,10 @@ class _FolderListDisplayState extends State<FolderListDisplay> {
                             IconButton(
                               icon: Icon(Icons.apple,
                                   color: widget.macPath ==
-                                          e.path.split("${DownloadUtil.getBaseDirectoryName()}/").last
+                                          e.path
+                                              .split(
+                                                  "${DownloadUtil.getBaseDirectoryName()}/")
+                                              .last
                                       ? Colors.green
                                       : null),
                               onPressed: () {

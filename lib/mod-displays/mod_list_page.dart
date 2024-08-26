@@ -30,14 +30,36 @@ class _ModListPageState extends State<ModListPage> {
   bool showUnverified = false;
 
   String sortCondition = "downloads";
-  bool sortOrder = false;
+  bool sortOrder = true;
 
   @override
   void initState() {
     super.initState();
   }
 
+  List<Mod> applySort(List<Mod> mods) {
+    switch (sortCondition) {
+      case "downloads":
+        mods.sort((a, b) => a.downloads.compareTo(b.downloads));
+        break;
+      case "name":
+        mods.sort((a, b) => a.name.compareTo(b.name));
+        break;
+      case "lastUpdated":
+        mods.sort((a, b) => a.lastUpdated.compareTo(b.lastUpdated));
+        break;
+    }
+
+    if (sortOrder) {
+      mods = mods.reversed.toList();
+    }
+
+    return mods;
+  }
+
   List<Mod> applySearch(List<Mod> mods) {
+
+
     if (searchController.text == "") {
       return mods;
     }
@@ -58,6 +80,8 @@ class _ModListPageState extends State<ModListPage> {
   @override
   Widget build(BuildContext context) {
     List<Mod> modsToDisplay = widget.allMods;
+
+    modsToDisplay = applySort(modsToDisplay);
 
     if (!showUnverified) {
       modsToDisplay =
@@ -125,7 +149,7 @@ class _ModListPageState extends State<ModListPage> {
                   padding: const EdgeInsets.all(8.0),
                   child: IconButton(
                     icon: Icon(
-                      sortOrder ? Icons.arrow_upward : Icons.arrow_downward,
+                      sortOrder ? Icons.arrow_downward : Icons.arrow_upward,
                     ),
                     onPressed: () {
                       setState(() {

@@ -51,6 +51,11 @@ class StyleConstants {
     fontSize: 24,
   );
 
+  static TextStyle graySubtitle = const TextStyle(
+    fontSize: 24,
+    color: Colors.grey
+  );
+
   static TextStyle h3Style =
       const TextStyle(fontWeight: FontWeight.bold, fontSize: 18);
 

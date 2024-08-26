@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:mosim_modloader/util/api_session.dart';
 import 'package:mosim_modloader/util/constants.dart';
 import 'package:mosim_modloader/util/download_util.dart';
+import 'package:mosim_modloader/util/mod_update.dart';
 import 'package:mosim_modloader/util/user.dart';
 
 class Mod {
@@ -32,30 +33,35 @@ class Mod {
   late String readableUploadDate;
   late String readableLastUpdateDate;
 
-  Mod({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.robots,
-    required this.verified,
-    required this.version,
-    required this.baseSimVersion,
-    required this.thumbnail,
-    required this.link,
-    required this.sourceCode,
-    required this.windowsPath,
-    required this.linuxPath,
-    required this.macPath,
-    required this.author,
-    required this.uploadDate,
-    required this.lastUpdated,
-    required this.downloads,
-  }) {
+  ModUpdate? update;
+
+  late String localVersion;
+
+  Mod(
+      {required this.id,
+      required this.name,
+      required this.description,
+      required this.robots,
+      required this.verified,
+      required this.version,
+      required this.baseSimVersion,
+      required this.thumbnail,
+      required this.link,
+      required this.sourceCode,
+      required this.windowsPath,
+      required this.linuxPath,
+      required this.macPath,
+      required this.author,
+      required this.uploadDate,
+      required this.lastUpdated,
+      required this.downloads,
+      this.update}) {
     DateFormat formatter = DateFormat("MM-dd-yy");
 
     readableUploadDate = formatter.format(uploadDate);
     readableLastUpdateDate = formatter.format(lastUpdated);
 
+    localVersion = version;
   }
 
   factory Mod.fromJson(Map<String, dynamic> json) {
@@ -77,12 +83,12 @@ class Mod {
       uploadDate: DateTime.parse(json['createdAt']).toLocal(),
       lastUpdated: DateTime.parse(json['updatedAt']).toLocal(),
       downloads: json['downloads'],
-      )
-    ;
+      update:
+          json['update'] != null ? ModUpdate.fromJson(json['update']) : null,
+    );
   }
 
   static Future<bool> isAvailable(String name) async {
-
     var result = await APISession.get("/mod/checkAvailability");
 
     var jsonVal = jsonDecode(result.body);
@@ -91,22 +97,22 @@ class Mod {
   }
 
   static Future<Mod?> postMod(
-    String name,
-    String downloadURL,
-    String description,
-    String version,
-    String baseSimVersion,
-    String sourceCode,
-    List<String> robots,
-    String thumbnail,
-    String windowsPath,
-    String macPath,
-    String linuxPath,
-    User author,
-    BuildContext context,
-  ) async {
-
-    var result = await APISession.post("/mod/create", jsonEncode({
+      String name,
+      String downloadURL,
+      String description,
+      String version,
+      String baseSimVersion,
+      String sourceCode,
+      List<String> robots,
+      String thumbnail,
+      String windowsPath,
+      String macPath,
+      String linuxPath,
+      User author,
+      BuildContext context,
+      bool update,
+      Mod? mod) async {
+    var encodedData = jsonEncode({
       "name": name,
       "link": downloadURL,
       "description": description,
@@ -119,18 +125,25 @@ class Mod {
       "macPath": macPath,
       "linuxPath": linuxPath,
       "author": author.id,
-    }));
+      "id": mod?.id
+    });
+
+    var result = !update
+        ? await APISession.post("/mod/create", encodedData)
+        : await APISession.patch("/mod/update", encodedData);
 
     if (result.statusCode != 200) {
-      APIConstants.showErrorToast("Failed to post mod: ${result.body}", context);
+      APIConstants.showErrorToast(
+          "Failed to post mod: ${result.body}", context);
 
       return null;
     } else {
-      APIConstants.showSuccessToast("Posted mod: $name. It will be reviewed and verified or returned to you for edits", context);
+      APIConstants.showSuccessToast(
+          "Posted mod: $name. It will be reviewed and verified or returned to you for edits",
+          context);
 
       return Mod.fromJson(jsonDecode(result.body));
     }
-
   }
 
   static Future<List<Mod>> getMods() async {
@@ -147,99 +160,111 @@ class Mod {
     return mods;
   }
 
-  Future<void> downloadMod(BuildContext context, Function(double) downloadProgressConsumer, Function() onFinishDownload, Function() onFinishUnzip, Function() onUnzipFail) async {
-    bool downloadSuccess = await DownloadUtil.downloadModFile(name, link, context, downloadProgressConsumer);
+  Future<void> downloadMod(
+      BuildContext context,
+      Function(double) downloadProgressConsumer,
+      Function() onFinishDownload,
+      Function() onFinishUnzip,
+      Function() onUnzipFail) async {
+    bool downloadSuccess = await DownloadUtil.downloadModFile(
+        name, link, context, downloadProgressConsumer);
 
-    if(downloadSuccess) {
+    if (downloadSuccess) {
       onFinishDownload();
 
-      var response = await APISession.postWithParams("/mod/addDownload", {"id": id.toString()});
+      var response = await APISession.postWithParams(
+          "/mod/addDownload", {"id": id.toString()});
 
       bool unzipSuccess = await DownloadUtil.unzipFile(name, context);
 
-      if(unzipSuccess) {
+      if (unzipSuccess) {
         generateMetadataFile();
 
         onFinishUnzip();
       } else {
         onUnzipFail();
       }
-    } else {
-    }
-
+    } else {}
   }
 
   Future<void> generateMetadataFile() async {
-      
-      String pathForMetadataFile = "${await DownloadUtil.getModloaderPath()}/$name/metadata.json";
-  
-      File file = File(pathForMetadataFile);
-  
-      file.createSync();
-  
-      file.writeAsStringSync(const JsonEncoder.withIndent('  ').convert({
-        "id": id,
-        "name": name,
-        "description": description,
-        "robots": robots,
-        "verified": verified,
-        "version": version,
-        "baseSimVersion": baseSimVersion,
-        "link": link,
-        "sourceCode": sourceCode,
-        "windowsPath": windowsPath,
-        "linuxPath": linuxPath,
-        "macPath": macPath,
-        "author": author.id,
-        "uploadDate": uploadDate.toIso8601String(),
-        "lastUpdated": lastUpdated.toIso8601String(),
-      }));
+    String pathForMetadataFile =
+        "${await DownloadUtil.getModloaderPath()}/$name/metadata.json";
+
+    File file = File(pathForMetadataFile);
+
+    file.createSync();
+
+    file.writeAsStringSync(const JsonEncoder.withIndent('  ').convert({
+      "id": id,
+      "name": name,
+      "description": description,
+      "robots": robots,
+      "verified": verified,
+      "version": version,
+      "baseSimVersion": baseSimVersion,
+      "link": link,
+      "sourceCode": sourceCode,
+      "windowsPath": windowsPath,
+      "linuxPath": linuxPath,
+      "macPath": macPath,
+      "author": author.id,
+      "uploadDate": uploadDate.toIso8601String(),
+      "lastUpdated": lastUpdated.toIso8601String(),
+    }));
   }
 
   static Future<List<Mod>> loadInstalledMods(List<Mod> allMods) async {
+    Directory modsDir = Directory(await DownloadUtil.getModloaderPath());
 
-      Directory modsDir = Directory(await DownloadUtil.getModloaderPath());
+    Map<int, String> downloaded = {};
 
-      List<int> downloadedIds = [];
+    modsDir.listSync().forEach((e) {
+      if (e is Directory) {
+        File metadataFile = File("${e.path}/metadata.json");
 
-      modsDir.listSync().forEach((e) {
-        if(e is Directory) {
-          File metadataFile = File("${e.path}/metadata.json");
+        if (metadataFile.existsSync()) {
+          Map<String, dynamic> json =
+              jsonDecode(metadataFile.readAsStringSync());
 
-          if(metadataFile.existsSync()) {
-            Map<String, dynamic> json = jsonDecode(metadataFile.readAsStringSync());
-            
-            downloadedIds.add(json['id']);
+          downloaded.putIfAbsent(json['id'], () => json['version']);
         }
       }
-      });
+    });
 
-      return allMods.where((e) => downloadedIds.contains(e.id)).toList();
+    List<Mod> mods = allMods.where((e) => downloaded.keys.contains(e.id)).toList();
+
+    for (var element in mods) {
+      element.localVersion = downloaded[element.id]!;
+    }
+
+    return mods;
 
   }
 
   Future<void> deleteMod(BuildContext context) async {
-
     try {
-      Directory modDir = Directory("${await DownloadUtil.getModloaderPath()}/$name");
+      Directory modDir =
+          Directory("${await DownloadUtil.getModloaderPath()}/$name");
 
       modDir.deleteSync(recursive: true);
-    
-      File modZipFile = File("${await DownloadUtil.getModloaderPath()}/$name.zip");
+
+      File modZipFile =
+          File("${await DownloadUtil.getModloaderPath()}/$name.zip");
 
       modZipFile.deleteSync();
 
       APIConstants.showSuccessToast("Uninstalled mod: $name", context);
-
-    } catch(e) {
-      APIConstants.showErrorToast("Failed to uninstall mod: $name", context);
+    } catch (e) {
+      APIConstants.showErrorToast(
+          "Failed to uninstall mod: $name... $e", context);
     }
-
   }
 
   Future<void> verifyMod(BuildContext context) async {
-    APISession.postWithParams("/mod/verify", {"id": id.toString()}).then((response) {
-      if(response.statusCode == 200) {
+    APISession.postWithParams("/mod/verify", {"id": id.toString()})
+        .then((response) {
+      if (response.statusCode == 200) {
         APIConstants.showSuccessToast("Verified mod: $name", context);
       } else {
         APIConstants.showErrorToast("Failed to verify mod: $name", context);
@@ -247,13 +272,46 @@ class Mod {
     });
   }
 
-  void launchMod() async {
-    String executablePath = "${await DownloadUtil.getModloaderPath()}/${Platform.isWindows ? windowsPath : Platform.isLinux ? linuxPath : macPath}".replaceAll("/", "\\");
+  Future<bool> approveModUpdate(BuildContext context) async {
+    var response = await APISession.patchWithParams(
+        "/mod/approveUpdate", {"id": id.toString(), "updateId": update!.id.toString()});
 
-    Process.run(executablePath, [' start ']).then((ProcessResult results) {
-      stdout.writeln(results.stdout);
-    });
-
+    if (response.statusCode == 200) {
+      APIConstants.showSuccessToast("Approved update for mod: $name", context);
+      return true;
+    } else {
+      APIConstants.showErrorToast(
+          "Failed to approve update for mod: $name, ${response.body}", context);
+      return false;
+    }
   }
-  
+
+  static Future<NameResult> nameAvailable(String name) async {
+    var response = await APISession.getWithParams("/mod/checkAvailability", {"name": name});
+
+    var jsonVal = jsonDecode(response.body);
+
+    return NameResult(name: jsonVal["name"], available: jsonVal['available']);
+  }
+
+  void launchMod(BuildContext context) async {
+    try {
+      String executablePath =
+          "${await DownloadUtil.getModloaderPath()}/${Platform.isWindows ? windowsPath : Platform.isLinux ? linuxPath : macPath}"
+              .replaceAll("/", "\\");
+
+      Process.run(executablePath, [' start ']).then((ProcessResult results) {
+        stdout.writeln(results.stdout);
+      });
+    } catch (e) {
+      APIConstants.showErrorToast("Failed to launch mod: $name", context);
+    }
+  }
+}
+
+class NameResult {
+  final String name;
+  final bool available;
+
+  NameResult({required this.name, required this.available});
 }

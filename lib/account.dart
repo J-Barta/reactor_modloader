@@ -171,7 +171,7 @@ class _AccountState extends State<Account> {
                   ),
                 ),
                 Column(
-                  children: userMods.map((e) => ModListView(mod: e, installed: widget.installedMods.contains(e), onInstallsChanged: widget.onInstallsChanged, canEdit: true,)).toList(),
+                  children: userMods.map((e) => ModListView(mod: e, installed: widget.installedMods.contains(e), onInstallsChanged: widget.onInstallsChanged, canEdit: true, user: user)).toList(),
                 )
               ],
             ),
