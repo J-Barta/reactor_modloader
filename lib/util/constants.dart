@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:toastification/toastification.dart';
 
 class APIConstants {
-  String baseUrl = "http://localhost:3000";
+  // String baseUrl = "http://localhost:3000";
+  String baseUrl = "http://40.233.83.5:3000";
   String userToken = "token";
 
   static void showSuccessToast(String message, BuildContext? context,

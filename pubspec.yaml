@@ -9,7 +9,7 @@ environment:
 #dart run msix:create
 msix_config:
   display_name: Reactor Modloader
-  publisher_display_name: Jedi_4  
+  publisher_display_name: Jedi_4   
   identity_name: CCShambots.ReactorModloader
   store: true
   publisher: CN=A3792B11-8FEE-477E-B2FF-B9039EB1B82B
