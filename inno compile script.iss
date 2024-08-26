@@ -26,7 +26,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
-OutputDir=C:\Users\barta\Documents\Github\mosim_modloader\inno build
+OutputDir=C:\Users\barta\Documents\Github\mosim_modloader\
 OutputBaseFilename=reactor-setup
 SetupIconFile=C:\Users\barta\Documents\Github\mosim_modloader\assets\icon\icon.ico
 Compression=lzma
