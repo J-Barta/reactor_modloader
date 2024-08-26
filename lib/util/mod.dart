@@ -172,7 +172,7 @@ class Mod {
     if (downloadSuccess) {
       onFinishDownload();
 
-      var response = await APISession.postWithParams(
+      await APISession.postWithParams(
           "/mod/addDownload", {"id": id.toString()});
 
       bool unzipSuccess = await DownloadUtil.unzipFile(name, context);

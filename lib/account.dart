@@ -12,7 +12,11 @@ class Account extends StatefulWidget {
   final List<Mod> allMods;
   final List<Mod> installedMods;
   final Function onInstallsChanged;
-  const Account({super.key, required this.allMods, required this.installedMods, required this.onInstallsChanged});
+  const Account(
+      {super.key,
+      required this.allMods,
+      required this.installedMods,
+      required this.onInstallsChanged});
 
   @override
   State<Account> createState() => _AccountState();
@@ -22,7 +26,16 @@ class _AccountState extends State<Account> {
   late User? user;
 
   bool changingName = false;
+
   TextEditingController nameController = TextEditingController();
+  bool requestingNameCheck = false;
+  bool nameTaken = false;
+
+  bool changingEmail = false;
+
+  TextEditingController emailController = TextEditingController();
+  bool requestingEmailCheck = false;
+  bool emailTaken = false;
 
   @override
   void initState() {
@@ -73,7 +86,9 @@ class _AccountState extends State<Account> {
 
   @override
   Widget build(BuildContext context) {
-    List<Mod> userMods = widget.allMods.where((element) => element.author.id == user?.id).toList();
+    List<Mod> userMods = widget.allMods
+        .where((element) => element.author.id == user?.id)
+        .toList();
 
     return user != null && user?.email != ""
         ? Scaffold(
@@ -102,9 +117,44 @@ class _AccountState extends State<Account> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           SizedBox(
+                            width: 50,
+                            child: nameTaken
+                                ? const Tooltip(
+                                    message: "Name taken!",
+                                    child: Icon(Icons.error_rounded,
+                                        color: Colors.red))
+                                : requestingNameCheck
+                                    ? const Tooltip(
+                                        message: "Checking Name Availability",
+                                        child: Padding(
+                                          padding: EdgeInsets.all(8.0),
+                                          child: CircularProgressIndicator(),
+                                        ))
+                                    : const Tooltip(
+                                        message: "Name Available!",
+                                        child: Icon(Icons.check_circle,
+                                            color: Colors.green)),
+                          ),
+                          SizedBox(
                             width: 300,
                             child: TextField(
                               controller: nameController,
+                              onChanged: (value) async {
+                                setState(() {
+                                  requestingNameCheck = true;
+                                });
+
+                                NameResult result =
+                                    await User.nameAvailable(value);
+
+                                if (result.name == nameController.text) {
+                                  setState(() {
+                                    nameTaken = !result.available &&
+                                        result.name != user?.name;
+                                    requestingNameCheck = false;
+                                  });
+                                }
+                              },
                               decoration: const InputDecoration(
                                   border: OutlineInputBorder(),
                                   hintText: 'New Name'),
@@ -112,7 +162,11 @@ class _AccountState extends State<Account> {
                           ),
                           IconButton(
                             onPressed: () {
-                              changeName();
+                              if(!nameTaken) {
+                                changeName();
+                              } else {
+                                APIConstants.showErrorToast("Username already taken!", context);
+                              }
                             },
                             icon: const Icon(Icons.save, color: Colors.green),
                             tooltip: "Save",
@@ -155,14 +209,15 @@ class _AccountState extends State<Account> {
                       ),
                       ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-                            foregroundColor: Colors.white
-                          ),
+                              backgroundColor:
+                                  Theme.of(context).colorScheme.inversePrimary,
+                              foregroundColor: Colors.white),
                           onPressed: () async {
                             Navigator.of(context).push(MaterialPageRoute(
-                                builder: (context) => ModEditorPage(user: user)));
+                                builder: (context) =>
+                                    ModEditorPage(user: user)));
                           },
-                          icon: Icon(Icons.add),
+                          icon: const Icon(Icons.add),
                           label: Text(
                             "Create Mod",
                             style: StyleConstants.subtitleStyle,
@@ -171,7 +226,14 @@ class _AccountState extends State<Account> {
                   ),
                 ),
                 Column(
-                  children: userMods.map((e) => ModListView(mod: e, installed: widget.installedMods.contains(e), onInstallsChanged: widget.onInstallsChanged, canEdit: true, user: user)).toList(),
+                  children: userMods
+                      .map((e) => ModListView(
+                          mod: e,
+                          installed: widget.installedMods.contains(e),
+                          onInstallsChanged: widget.onInstallsChanged,
+                          canEdit: true,
+                          user: user))
+                      .toList(),
                 )
               ],
             ),

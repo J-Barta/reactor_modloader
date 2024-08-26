@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mosim_modloader/util/constants.dart';
 import 'package:mosim_modloader/util/api_session.dart';
+import 'package:mosim_modloader/util/mod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class User {
@@ -86,6 +87,22 @@ class User {
     return this;
   }
 
+  Future<User> changeEmail(String newEmail, BuildContext context) async {
+    var result = await APISession.patchWithParams(
+        "/poster/changeEmail", {'token': randomToken, 'email': newEmail});
+
+    if(context.mounted) {
+      if (result.statusCode == 200) {
+        APIConstants.showSuccessToast("Changed email to: $newEmail. Check that email address for a new verification message.", context);
+      } else {
+        APIConstants.showErrorToast(
+            "Failed to change email: ${result.body}", context);
+      }
+    }
+
+    return this;
+  }
+
 
   static Future<User?> getFromToken(String token) async {
     var result =
@@ -147,6 +164,22 @@ class User {
     }
 
     return result.statusCode == 200;
+  }
+
+  static Future<NameResult> nameAvailable(String name) async {
+    var response = await APISession.getWithParams("/poster/nameAvailable", {"name": name});
+
+    var jsonVal = jsonDecode(response.body);
+
+    return NameResult(name: jsonVal["name"], available: jsonVal['available']);
+  }
+
+  static Future<NameResult> emailAvailable(String email) async {
+    var response = await APISession.getWithParams("/poster/emailAvailable", {"email": email});
+
+    var jsonVal = jsonDecode(response.body);
+
+    return NameResult(name: jsonVal["email"], available: jsonVal['available']);
   }
 
   
