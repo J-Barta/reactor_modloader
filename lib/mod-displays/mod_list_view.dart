@@ -50,6 +50,15 @@ class _ModListViewState extends State<ModListView> {
     });
   }
 
+  @override
+  void didUpdateWidget(ModListView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.mod != widget.mod) {
+      loadThumbnail();
+    }
+  }
+
   void loadThumbnail() async {
     if (widget.mod.thumbnail != "") {
       try {

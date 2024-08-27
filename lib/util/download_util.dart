@@ -49,16 +49,7 @@ class DownloadUtil {
 
       await extractFileToDisk(zipPath, "${await getModloaderPath()}/$modName");
 
-      // final inputStream = InputFileStream(zipPath);
-
-      // final archive = ZipDecoder().decodeBuffer(inputStream);
-
-      // await extractArchiveToDisk(
-      //     archive, "${await getModloaderPath()}/$modName");
-
-
       APIConstants.showSuccessToast("File Unzipped!", context);
-
 
       return true;
     } catch (e) {
