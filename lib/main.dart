@@ -78,7 +78,7 @@ class BottomNavigation extends StatefulWidget {
 class _BottomNavigationState extends State<BottomNavigation> {
   final pageViewController = PageController(initialPage: 0);
 
-  String version = "";
+  String version = "0.0.0";
   int selectedIndex = 0;
   static List<Widget> widgetOptions = <Widget>[];
 
@@ -86,6 +86,8 @@ class _BottomNavigationState extends State<BottomNavigation> {
   List<Mod> installedMods = [];
 
   User? user;
+
+  Widget? updatWidget;
 
   @override
   void initState() {
@@ -141,6 +143,29 @@ class _BottomNavigationState extends State<BottomNavigation> {
 
     setState(() {
       version = info.version;
+
+      updatWidget = UpdatWidget(
+          currentVersion: version,
+          getLatestVersion: () async {
+            // Github gives us a super useful latest endpoint, and we can use it to get the latest stable release
+            final data = await http.get(Uri.parse(
+              "https://api.github.com/repos/J-Barta/reactor_modloader/releases/latest",
+            ));
+    
+            // Return the tag name, which is always a semantically versioned string.
+            return jsonDecode(data.body)["tag_name"];
+          },
+          getBinaryUrl: (version) async {
+            return "https://github.com/J-Barta/reactor_modloader/releases/download/$version/reactor-${Platform.operatingSystem}-$version.$platformExt";
+          },
+          appName: "Reactor Modloader",
+          getChangelog: (_, __) async {
+            final data = await http.get(Uri.parse(
+              "https://api.github.com/repos/J-Barta/reactor_modloader/releases/latest",
+            ));
+            return jsonDecode(data.body)["body"];
+          },
+        );
     });
   }
 
@@ -172,28 +197,7 @@ class _BottomNavigationState extends State<BottomNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        floatingActionButton: UpdatWidget(
-          currentVersion: version,
-          getLatestVersion: () async {
-            // Github gives us a super useful latest endpoint, and we can use it to get the latest stable release
-            final data = await http.get(Uri.parse(
-              "https://api.github.com/repos/J-Barta/reactor_modloader/releases/latest",
-            ));
-    
-            // Return the tag name, which is always a semantically versioned string.
-            return jsonDecode(data.body)["tag_name"];
-          },
-          getBinaryUrl: (version) async {
-            return "https://github.com/J-Barta/reactor_modloader/releases/download/$version/reactor-${Platform.operatingSystem}-$version.$platformExt";
-          },
-          appName: "Reactor Modloader",
-          getChangelog: (_, __) async {
-            final data = await http.get(Uri.parse(
-              "https://api.github.com/repos/J-Barta/reactor_modloader/releases/latest",
-            ));
-            return jsonDecode(data.body)["body"];
-          },
-        ),
+        floatingActionButton: updatWidget,
         appBar: AppBar(
           title: const Text('Reactor'),
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
