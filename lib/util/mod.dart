@@ -300,7 +300,6 @@ class Mod {
           "${await DownloadUtil.getModloaderPath()}/${Platform.isWindows || Platform.isLinux ? windowsPath  : macPath}"
               .replaceAll("/", "\\");
       
-      print(Platform.isLinux);
       if(Platform.isLinux) {
         executablePath = executablePath.replaceAll("\\", "/");
       }
