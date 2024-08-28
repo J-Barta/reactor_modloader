@@ -12,8 +12,6 @@ import 'package:mosim_modloader/util/user.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:updat/updat.dart';
 import 'package:http/http.dart' as http;
-import 'package:updat/updat_window_manager.dart';
-import 'package:updat/theme/chips/floating_with_silent_download.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
