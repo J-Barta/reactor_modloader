@@ -129,7 +129,18 @@ class _BottomNavigationState extends State<BottomNavigation> {
   }
 
   void reloadInstalledMods() async {
-    List<Mod> installed = await Mod.loadInstalledMods(allMods);
+
+    List<Mod> installed = [];
+
+    try { 
+      installed = await Mod.loadInstalledMods(allMods);
+
+    }  catch (e) {}
+
+    //Installs will be empty if there are either no mods installed or no connection, so try to load local mods instead
+    if(installed.isEmpty) {
+      installed = await Mod.loadLocalMods();
+    }
 
     setState(() {
       installedMods = installed;
@@ -208,7 +219,6 @@ class _BottomNavigationState extends State<BottomNavigation> {
               onPressed: () async {
                 String path = await DownloadUtil.getModloaderPath();
                 path = path.replaceAll("/", "\\");
-                print(path);
                 Process.run(
                   "explorer",
                   [path],

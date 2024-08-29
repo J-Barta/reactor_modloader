@@ -73,16 +73,16 @@ class Mod {
       verified: json['verified'],
       version: json['version'],
       baseSimVersion: json['baseSimVersion'],
-      thumbnail: json['thumbnail'],
+      thumbnail: json['thumbnail'] ?? "",
       link: json['link'],
       sourceCode: json['sourceCode'],
       windowsPath: json['windowsPath'],
       linuxPath: json['linuxPath'],
       macPath: json['macPath'],
-      author: User.fromJson(json['poster']),
+      author: json['poster'] != null ? User.fromJson(json['poster']) : User.blank(),
       uploadDate: DateTime.parse(json['createdAt']).toLocal(),
       lastUpdated: DateTime.parse(json['updatedAt']).toLocal(),
-      downloads: json['downloads'],
+      downloads: json['downloads'] ?? -1,
       update:
           json['update'] != null ? ModUpdate.fromJson(json['update']) : null,
     );
@@ -209,8 +209,8 @@ class Mod {
       "linuxPath": linuxPath,
       "macPath": macPath,
       "author": author.id,
-      "uploadDate": uploadDate.toIso8601String(),
-      "lastUpdated": lastUpdated.toIso8601String(),
+      "createdAt": uploadDate.toIso8601String(),
+      "updatedAt": lastUpdated.toIso8601String(),
     }));
   }
 
@@ -240,6 +240,29 @@ class Mod {
 
     return mods;
 
+  }
+
+  static Future<List<Mod>> loadLocalMods() async {
+    Directory modsDir = Directory(await DownloadUtil.getModloaderPath());
+
+    List<Mod> mods = [];
+
+    modsDir.listSync().forEach((e) {
+      if (e is Directory) {
+        File metadataFile = File("${e.path}/metadata.json");
+
+        if (metadataFile.existsSync()) {
+          Map<String, dynamic> json =
+              jsonDecode(metadataFile.readAsStringSync());
+
+          Mod loaded = Mod.fromJson(json);
+          mods.add(loaded);
+
+        }
+      }
+    });
+
+    return mods;
   }
 
   Future<void> deleteMod(BuildContext context) async {
