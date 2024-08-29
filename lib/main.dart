@@ -89,6 +89,8 @@ class _BottomNavigationState extends State<BottomNavigation> {
 
   Widget? updatWidget;
 
+  bool disconnected = false;
+
   @override
   void initState() {
     super.initState();
@@ -101,6 +103,24 @@ class _BottomNavigationState extends State<BottomNavigation> {
     loadUser();
 
     regenWidgetOptions();
+
+    checkConnection();
+  }
+
+  void checkConnection() async {
+    try {
+      var response = await APISession.get("/");
+
+      if (response.statusCode != 200) {
+        setState(() {
+          disconnected = true;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        disconnected = true;
+      });
+    }
   }
 
   Future<void> loadUser() async {
@@ -129,16 +149,14 @@ class _BottomNavigationState extends State<BottomNavigation> {
   }
 
   void reloadInstalledMods() async {
-
     List<Mod> installed = [];
 
-    try { 
+    try {
       installed = await Mod.loadInstalledMods(allMods);
-
-    }  catch (e) {}
+    } catch (e) {}
 
     //Installs will be empty if there are either no mods installed or no connection, so try to load local mods instead
-    if(installed.isEmpty) {
+    if (installed.isEmpty) {
       installed = await Mod.loadLocalMods();
     }
 
@@ -156,27 +174,27 @@ class _BottomNavigationState extends State<BottomNavigation> {
       version = info.version;
 
       updatWidget = UpdatWidget(
-          currentVersion: version,
-          getLatestVersion: () async {
-            // Github gives us a super useful latest endpoint, and we can use it to get the latest stable release
-            final data = await http.get(Uri.parse(
-              "https://api.github.com/repos/J-Barta/reactor_modloader/releases/latest",
-            ));
-    
-            // Return the tag name, which is always a semantically versioned string.
-            return jsonDecode(data.body)["tag_name"];
-          },
-          getBinaryUrl: (version) async {
-            return "https://github.com/J-Barta/reactor_modloader/releases/download/$version/reactor-${Platform.operatingSystem}-$version.$platformExt";
-          },
-          appName: "Reactor Modloader",
-          getChangelog: (_, __) async {
-            final data = await http.get(Uri.parse(
-              "https://api.github.com/repos/J-Barta/reactor_modloader/releases/latest",
-            ));
-            return jsonDecode(data.body)["body"];
-          },
-        );
+        currentVersion: version,
+        getLatestVersion: () async {
+          // Github gives us a super useful latest endpoint, and we can use it to get the latest stable release
+          final data = await http.get(Uri.parse(
+            "https://api.github.com/repos/J-Barta/reactor_modloader/releases/latest",
+          ));
+
+          // Return the tag name, which is always a semantically versioned string.
+          return jsonDecode(data.body)["tag_name"];
+        },
+        getBinaryUrl: (version) async {
+          return "https://github.com/J-Barta/reactor_modloader/releases/download/$version/reactor-${Platform.operatingSystem}-$version.$platformExt";
+        },
+        appName: "Reactor Modloader",
+        getChangelog: (_, __) async {
+          final data = await http.get(Uri.parse(
+            "https://api.github.com/repos/J-Barta/reactor_modloader/releases/latest",
+          ));
+          return jsonDecode(data.body)["body"];
+        },
+      );
     });
   }
 
@@ -213,23 +231,30 @@ class _BottomNavigationState extends State<BottomNavigation> {
           title: const Text('Reactor'),
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           actions: [
+            disconnected
+                ? IconButton(
+                    tooltip: "Offline!",
+                    onPressed: () {
+                      checkConnection();
+                    },
+                    icon: const Icon(
+                      Icons.cloud_off,
+                      color: Colors.red,
+                    ))
+                : Container(),
             IconButton(
-              icon: const Icon(Icons.folder),
-              tooltip: "Open Mod Directory",
-              onPressed: () async {
-                String path = await DownloadUtil.getModloaderPath();
-                path = path.replaceAll("/", "\\");
-                Process.run(
-                  "explorer",
-                  [path],
-                  workingDirectory:path 
-                );
-              }
-            ),
+                icon: const Icon(Icons.folder),
+                tooltip: "Open Mod Directory",
+                onPressed: () async {
+                  String path = await DownloadUtil.getModloaderPath();
+                  path = path.replaceAll("/", "\\");
+                  Process.run("explorer", [path], workingDirectory: path);
+                }),
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: () {
                 loadMods();
+                checkConnection();
               },
             ),
           ],
