@@ -203,6 +203,20 @@ class _BottomNavigationState extends State<BottomNavigation> {
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           actions: [
             IconButton(
+              icon: const Icon(Icons.folder),
+              tooltip: "Open Mod Directory",
+              onPressed: () async {
+                String path = await DownloadUtil.getModloaderPath();
+                path = path.replaceAll("/", "\\");
+                print(path);
+                Process.run(
+                  "explorer",
+                  [path],
+                  workingDirectory:path 
+                );
+              }
+            ),
+            IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: () {
                 loadMods();
