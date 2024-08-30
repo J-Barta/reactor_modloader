@@ -320,8 +320,12 @@ class Mod {
   void launchMod(BuildContext context) async {
     try {
       String executablePath =
-          "${await DownloadUtil.getModloaderPath()}/${Platform.isWindows ? windowsPath : Platform.isLinux ? linuxPath : macPath}"
+          "${await DownloadUtil.getModloaderPath()}/${Platform.isWindows || Platform.isLinux ? windowsPath  : macPath}"
               .replaceAll("/", "\\");
+      
+      if(Platform.isLinux) {
+        executablePath = executablePath.replaceAll("\\", "/");
+      }
 
       Process.run(executablePath, [' start ']).then((ProcessResult results) {
         stdout.writeln(results.stdout);
