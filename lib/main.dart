@@ -115,6 +115,10 @@ class _BottomNavigationState extends State<BottomNavigation> {
         setState(() {
           disconnected = true;
         });
+      } else {
+        setState(() {
+          disconnected = false;
+        });
       }
     } catch (e) {
       setState(() {
