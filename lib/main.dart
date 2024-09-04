@@ -210,6 +210,7 @@ class _BottomNavigationState extends State<BottomNavigation> {
       Home(
         installedMods: installedMods,
         onInstallsChanged: reloadInstalledMods,
+        user: user,
       ),
       ModListPage(
         allMods: allMods,
