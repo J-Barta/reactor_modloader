@@ -8,6 +8,7 @@ import 'package:mosim_modloader/util/constants.dart';
 import 'package:mosim_modloader/util/download_util.dart';
 import 'package:mosim_modloader/util/mod_update.dart';
 import 'package:mosim_modloader/util/user.dart';
+import 'package:process_run/shell.dart';
 
 class Mod {
   int id;
@@ -336,14 +337,33 @@ class Mod {
       String executablePath =
           "${await DownloadUtil.getModloaderPath()}/${Platform.isWindows || Platform.isLinux ? windowsPath  : macPath}"
               .replaceAll("/", "\\");
+
+      
       
       if(Platform.isLinux) {
         executablePath = executablePath.replaceAll("\\", "/");
+
+        var shell = Shell(workingDirectory: executablePath.substring(0, executablePath.lastIndexOf("/")));
+
+        String path = windowsPath.replaceAll("\\", "/");
+        path = path.substring(0, path.lastIndexOf("/")).splitMapJoin(RegExp(r'/'), onMatch: (e) => '${e[0]}', onNonMatch: (n) => '\'$n\'');
+
+      await shell.run('''
+        # Print working directory
+        pwd
+
+        ls
+
+        wine ./${windowsPath.replaceAll("\\", "/").split("/").last}
+
+        ''');
+      } else {
+      Process.run(executablePath, [' start ']).then((ProcessResult results) {
+              stdout.writeln(results.stdout);
+            });
+
       }
 
-      Process.run(executablePath, [' start ']).then((ProcessResult results) {
-        stdout.writeln(results.stdout);
-      });
     } catch (e) {
       APIConstants.showErrorToast("Failed to launch mod: $name", context);
     }
