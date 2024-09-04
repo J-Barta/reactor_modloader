@@ -309,6 +309,20 @@ class Mod {
     }
   }
 
+  Future<bool> rejectModUpdate(BuildContext context) async {
+    var response = await APISession.deleteWithParams(
+        "/mod/rejectUpdate", {"id": id.toString(), "updateId": update!.id.toString()});
+
+    if (response.statusCode == 200) {
+      APIConstants.showSuccessToast("Rejected Update for mod: $name", context);
+      return true;
+    } else {
+      APIConstants.showErrorToast(
+          "Failed to reject update for mod: $name, ${response.body}", context);
+      return false;
+    }
+  }
+
   static Future<NameResult> nameAvailable(String name) async {
     var response = await APISession.getWithParams("/mod/checkAvailability", {"name": name});
 

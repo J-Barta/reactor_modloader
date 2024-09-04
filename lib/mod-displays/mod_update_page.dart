@@ -102,11 +102,13 @@ class _ModUpdatePageState extends State<ModUpdatePage> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               ElevatedButton.icon(
-                onPressed: () {
-                  // TODO: Implement discard logic
+                onPressed: ()async  {
+                  await widget.mod.rejectModUpdate(context);
+
+                  Navigator.of(context).pop();
                 },
                 icon: const Icon(Icons.close),
-                label: Text('Discard', style: StyleConstants.subtitleStyle),
+                label: Text('Reject', style: StyleConstants.subtitleStyle),
               ),
               ElevatedButton.icon(
                 onPressed: () async {
