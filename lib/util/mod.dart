@@ -80,7 +80,8 @@ class Mod {
       windowsPath: json['windowsPath'],
       linuxPath: json['linuxPath'],
       macPath: json['macPath'],
-      author: json['poster'] != null ? User.fromJson(json['poster']) : User.blank(),
+      author:
+          json['poster'] != null ? User.fromJson(json['poster']) : User.blank(),
       uploadDate: DateTime.parse(json['createdAt']).toLocal(),
       lastUpdated: DateTime.parse(json['updatedAt']).toLocal(),
       downloads: json['downloads'] ?? -1,
@@ -233,14 +234,14 @@ class Mod {
       }
     });
 
-    List<Mod> mods = allMods.where((e) => downloaded.keys.contains(e.id)).toList();
+    List<Mod> mods =
+        allMods.where((e) => downloaded.keys.contains(e.id)).toList();
 
     for (var element in mods) {
       element.localVersion = downloaded[element.id]!;
     }
 
     return mods;
-
   }
 
   static Future<List<Mod>> loadLocalMods() async {
@@ -258,7 +259,6 @@ class Mod {
 
           Mod loaded = Mod.fromJson(json);
           mods.add(loaded);
-
         }
       }
     });
@@ -297,8 +297,8 @@ class Mod {
   }
 
   Future<bool> approveModUpdate(BuildContext context) async {
-    var response = await APISession.patchWithParams(
-        "/mod/approveUpdate", {"id": id.toString(), "updateId": update!.id.toString()});
+    var response = await APISession.patchWithParams("/mod/approveUpdate",
+        {"id": id.toString(), "updateId": update!.id.toString()});
 
     if (response.statusCode == 200) {
       APIConstants.showSuccessToast("Approved update for mod: $name", context);
@@ -311,8 +311,8 @@ class Mod {
   }
 
   Future<bool> rejectModUpdate(BuildContext context) async {
-    var response = await APISession.deleteWithParams(
-        "/mod/rejectUpdate", {"id": id.toString(), "updateId": update!.id.toString()});
+    var response = await APISession.deleteWithParams("/mod/rejectUpdate",
+        {"id": id.toString(), "updateId": update!.id.toString()});
 
     if (response.statusCode == 200) {
       APIConstants.showSuccessToast("Rejected Update for mod: $name", context);
@@ -325,7 +325,8 @@ class Mod {
   }
 
   static Future<NameResult> nameAvailable(String name) async {
-    var response = await APISession.getWithParams("/mod/checkAvailability", {"name": name});
+    var response = await APISession.getWithParams(
+        "/mod/checkAvailability", {"name": name});
 
     var jsonVal = jsonDecode(response.body);
 
@@ -335,20 +336,23 @@ class Mod {
   void launchMod(BuildContext context) async {
     try {
       String executablePath =
-          "${await DownloadUtil.getModloaderPath()}/${Platform.isWindows || Platform.isLinux ? windowsPath  : macPath}"
+          "${await DownloadUtil.getModloaderPath()}/${Platform.isWindows || Platform.isLinux ? windowsPath : macPath}"
               .replaceAll("/", "\\");
 
-      
-      
-      if(Platform.isLinux) {
+      if (Platform.isLinux) {
         executablePath = executablePath.replaceAll("\\", "/");
 
-        var shell = Shell(workingDirectory: executablePath.substring(0, executablePath.lastIndexOf("/")));
+        var shell = Shell(
+            workingDirectory:
+                executablePath.substring(0, executablePath.lastIndexOf("/")));
 
         String path = windowsPath.replaceAll("\\", "/");
-        path = path.substring(0, path.lastIndexOf("/")).splitMapJoin(RegExp(r'/'), onMatch: (e) => '${e[0]}', onNonMatch: (n) => '\'$n\'');
+        path = path.substring(0, path.lastIndexOf("/")).splitMapJoin(
+            RegExp(r'/'),
+            onMatch: (e) => '${e[0]}',
+            onNonMatch: (n) => '\'$n\'');
 
-      await shell.run('''
+        await shell.run('''
         # Print working directory
         pwd
 
@@ -358,12 +362,10 @@ class Mod {
 
         ''');
       } else {
-      Process.run(executablePath, [' start ']).then((ProcessResult results) {
-              stdout.writeln(results.stdout);
-            });
-
+        Process.run(executablePath, [' start ']).then((ProcessResult results) {
+          stdout.writeln(results.stdout);
+        });
       }
-
     } catch (e) {
       APIConstants.showErrorToast("Failed to launch mod: $name", context);
     }
