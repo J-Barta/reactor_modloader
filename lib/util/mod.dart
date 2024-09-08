@@ -219,6 +219,19 @@ class Mod {
   static Future<List<Mod>> loadInstalledMods(List<Mod> allMods) async {
     Directory modsDir = Directory(await DownloadUtil.getModloaderPath());
 
+    if(!modsDir.existsSync()) {
+      modsDir.createSync();
+    }
+
+    //Try to delete old zip files
+    modsDir.listSync().forEach((e) {
+      if (e is File) {
+        if (e.path.endsWith(".zip")) {
+          e.deleteSync();
+        }
+      }
+    });
+
     Map<int, String> downloaded = {};
 
     modsDir.listSync().forEach((e) {

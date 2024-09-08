@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:mosim_modloader/account.dart';
 import 'package:mosim_modloader/home.dart';
@@ -10,6 +11,7 @@ import 'package:mosim_modloader/util/download_util.dart';
 import 'package:mosim_modloader/util/mod.dart';
 import 'package:mosim_modloader/util/user.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:updat/updat.dart';
 import 'package:http/http.dart' as http;
 
@@ -245,6 +247,16 @@ class _BottomNavigationState extends State<BottomNavigation> {
                       color: Colors.red,
                     ))
                 : Container(),
+            IconButton(
+                onPressed: () async {
+                  String? result = await FilePicker.platform.getDirectoryPath();
+
+                  if (result != null) {
+                    DownloadUtil.setBaseStorageLocation(result, context);
+                  }
+                },
+                icon: const Icon(Icons.create_new_folder),
+                tooltip: "Select Directory to Save Mods to",),
             IconButton(
                 icon: const Icon(Icons.folder),
                 tooltip: "Open Mod Directory",

@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:mosim_modloader/util/constants.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DownloadUtil {
 
@@ -72,8 +73,33 @@ class DownloadUtil {
   }
 
   static Future<String> getModloaderPath() async {
-    return await getApplicationDocumentsDirectory()
-        .then((value) => ("${value.path}/${getBaseDirectoryName()}"));
+    return await getBaseStorageLocation()
+        .then((value) => ("$value/${getBaseDirectoryName()}"));
+  }
+
+  static Future<void> setBaseStorageLocation(String location, BuildContext context) async {
+    try {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    prefs.setString(APIConstants().storageLocation, location);
+
+    APIConstants.showSuccessToast("Successfully set save location", context);
+
+    } catch (e) {
+        APIConstants.showErrorToast("Failed to set save location", context);
+    }
+  }
+
+  static Future<String> getBaseStorageLocation() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    String? storageLocation = prefs.getString(APIConstants().storageLocation);
+
+    if(storageLocation != null) {
+      return storageLocation;
+    } else {
+      return (await getApplicationDocumentsDirectory()).path;
+    }
   }
 
   static String getBaseDirectoryName() {

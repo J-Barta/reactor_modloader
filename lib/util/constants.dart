@@ -7,6 +7,7 @@ class APIConstants {
   // String baseUrl = "http://localhost:3000";
   String baseUrl = "http://40.233.83.5:3000";
   String userToken = "token";
+  String storageLocation = "storageLocation";
 
   static void showSuccessToast(String message, BuildContext? context,
       {int seconds = 5}) {
