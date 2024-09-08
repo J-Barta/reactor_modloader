@@ -1,7 +1,7 @@
 name: mosim_modloader
 description: "The Reactor Modloader for the game MoSim, made in Flutter."
 publish_to: 'none'
-version: 1.0.0
+version: 1.1.0
 
 environment:
   sdk: '>=3.4.3 <4.0.0'
